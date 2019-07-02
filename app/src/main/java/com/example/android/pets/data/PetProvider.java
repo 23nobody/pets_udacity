@@ -79,6 +79,7 @@ public class PetProvider extends ContentProvider {
             default:
                 throw new IllegalArgumentException("Cannot query unknown URI " + uri);
         }
+        cursor.setNotificationUri(getContext().getContentResolver(),uri);
         return cursor;
     }
 
@@ -117,15 +118,22 @@ public class PetProvider extends ContentProvider {
         switch (match) {
             case PETS:
                 // Delete all rows that match the selection and selection args
-                return database.delete(PetContract.PetEntry.TABLE_NAME, selection, selectionArgs);
+              int   rowsDeleted = database.delete(PetContract.PetEntry.TABLE_NAME, selection, selectionArgs);
+                if (rowsDeleted != 0) {
+                    getContext().getContentResolver().notifyChange(uri, null);}
+                return rowsDeleted;
             case PET_ID:
                 // Delete a single row given by the ID in the URI
                 selection = PetContract.PetEntry._ID + "=?";
                 selectionArgs = new String[] { String.valueOf(ContentUris.parseId(uri)) };
-                return database.delete(PetContract.PetEntry.TABLE_NAME, selection, selectionArgs);
+                   rowsDeleted = database.delete(PetContract.PetEntry.TABLE_NAME, selection, selectionArgs);
+                if (rowsDeleted != 0) {
+                    getContext().getContentResolver().notifyChange(uri, null);}
+                return rowsDeleted;
             default:
                 throw new IllegalArgumentException("Deletion is not supported for " + uri);
         }
+
     }
 
     @Override
@@ -165,6 +173,7 @@ public class PetProvider extends ContentProvider {
             Log.e(LOG_TAG, "Failed to insert row for " + uri);
             return null;
         }
+        getContext().getContentResolver().notifyChange(uri,null);
         // Once we know the ID of the new row in the table,
         // return the new URI with the ID appended to the end of it
         return ContentUris.withAppendedId(uri, id);
@@ -199,7 +208,9 @@ public class PetProvider extends ContentProvider {
 
         SQLiteDatabase database = mDbHelper.getWritableDatabase();
       int i=  database.update(PetContract.PetEntry.TABLE_NAME,values,selection,selectionArgs);
-
+        if (i != 0) {
+            getContext().getContentResolver().notifyChange(uri, null);
+        }
         return i;
     }
 
